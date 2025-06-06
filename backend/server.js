@@ -1,15 +1,25 @@
 const express = require('express');
+const dotenv = require('dotenv');
+dotenv.config();
+const authRouter = require('./router/auth-router')
+const homeRouter = require('./router/home-router')
+const ratelimit = require('express-rate-limit')
+const cookieParser = require("cookie-parser");
+const helmet = require('helmet');
+
+const port =process.env.PORT;
 
 const app = express();
 
-const port = process.env.PORT || 8080;
+app.use(express.json());
+app.use(cookieParser());
+app.use(helmet());
 
 
-app.get('/', (req, res) => {
-    res.json({
-        message: 'Hello World!'
-    })
+
+app.use('/api/auth', authRouter);
+app.use('/api/user', homeRouter);
+
+app.listen(port, () => {
+    console.log(`Listening on port ${port}`);
 })
-
-
-app.listen(port, () => console.log(`Server started on port ${port}`));
