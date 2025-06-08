@@ -87,12 +87,13 @@ const loginUser = async (req, res) => {
             username: user.username,
 
         }, process.env.JWT_SECRET_KEY, {
-            expiresIn: '1d'
+            expiresIn: '15m'
         })
 
         res.cookie("token", token, {
             httpOnly: true,
             secure: false,
+            sameSite: 'strict',
             maxAge: 60 * 60 * 1000,
             path: '/'
         })
@@ -120,6 +121,7 @@ const logoutUser = async (req, res) => {
         res.clearCookie("token",{
             httpOnly: true,
             secure: false,
+            sameSite: 'strict',
             path: '/'
         })
         return res.status(200).json({
