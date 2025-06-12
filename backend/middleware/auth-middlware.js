@@ -27,10 +27,12 @@ const authmiddleware = (req, res, next) => {
 
         req.user = decodetoken;
         next()
+        console.log(req.user);
 
 
 
     }catch(error){
+        console.log(error)
         return res.status(401).json({
             success: false,
             message: "NO token provided"

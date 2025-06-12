@@ -1,6 +1,10 @@
 const prisma = require("../utils/prismaClient");
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const resend = require('resend');
+const crypto = require('crypto');
+const {Resend} = require("resend");
+
 
 
 
@@ -83,7 +87,7 @@ const loginUser = async (req, res) => {
         }
 
         const token = jwt.sign({
-            userid: user._id,
+            userid: user.id,
             username: user.username,
 
         }, process.env.JWT_SECRET_KEY, {
@@ -117,8 +121,8 @@ const loginUser = async (req, res) => {
 }
 
 const logoutUser = async (req, res) => {
-    try{
-        res.clearCookie("token",{
+    try {
+        res.clearCookie("token", {
             httpOnly: true,
             secure: false,
             sameSite: 'strict',
@@ -126,10 +130,10 @@ const logoutUser = async (req, res) => {
         })
         return res.status(200).json({
             success: true,
-            message:"Logged out successfully",
+            message: "Logged out successfully",
         })
 
-    }catch(err){
+    } catch (err) {
         res.status(500).json({
             sucess: false,
             message: "Login first"
@@ -137,4 +141,100 @@ const logoutUser = async (req, res) => {
     }
 }
 
-module.exports = { registerUser, loginUser , logoutUser }
+
+    // if user forget password
+
+    const forgotPassword = async (req, res) => {
+        const {email} = req.body;
+        const resend = new Resend(process.env.RESEND_KEY);
+        try {
+
+            const user = await prisma.user.findUnique({where: {email}})
+            if (!user) {
+                return res.status(400).json({error: "Invalid user"})
+            }
+
+            const token = crypto.randomBytes(32).toString("hex")
+            const expiresAt = new Date(Date.now() + 1000 * 60 * 15)
+
+            await prisma.passwordResetToken.create({
+                data: {
+                    token,
+                    userId: user.id,
+                    expiresAt
+                }
+            })
+
+            const resetlink = `http://localhost:3000/auth/reset-password/${token}`
+
+            await resend.emails.send({
+                from: 'ProjectMate <onboarding@resend.dev>',
+                to: email,
+                subject: 'Reset Password MAIL',
+                html: `<p>Click <a href="${resetlink}">here</a> to reset your password. Link expires in 15 minutes.</p>`
+            })
+            return res.status(200).json({
+                success: true,
+                message:"Reset link is send to ur email"
+            })
+        }catch (err){
+            console.log(err)
+            res.status(500).json({
+                sucess: false,
+                message: "Some error occured"
+            })
+        }
+    }
+
+    const resetPassword = async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    try{
+        const tokDoc = await prisma.passwordResetToken.findUnique({
+            where: {token},
+            include: {user:true}
+        })
+
+        if(!tokDoc || new Date() > tokDoc.expiresAt){
+            return res.status(401).json({
+                sucess: false,
+                message: "Password reset expired"
+            })
+        }
+        const salt = await bcrypt.genSalt(10);
+        const hased = await bcrypt.hash(password,salt);
+
+        await prisma.user.update({
+            where: { id: tokDoc.userId},
+            data: { password : hased}
+        })
+
+        await prisma.passwordResetToken.delete({
+            where: {token},
+
+        })
+
+        return res.status(200).json({
+            success: true,
+            message:"Successfully reset password"
+        })
+
+
+
+    }catch(err){
+        console.log(err);
+        res.status(500).json({
+
+            sucess: false,
+            message: "Some error occured"
+
+        })
+    }
+
+    }
+
+
+
+
+module.exports = { registerUser, loginUser , logoutUser, forgotPassword,resetPassword }
