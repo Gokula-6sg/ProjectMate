@@ -134,7 +134,6 @@ try {
                     message: 'Project not found',
                 })
             }
-
             if(exist.ownerId !== req.user.userid){
                 res.status(404).json({
                     success: false,

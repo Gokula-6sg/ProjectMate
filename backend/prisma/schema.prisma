@@ -22,6 +22,8 @@ model User {
   rating   Int        @default(0)
   createAt DateTime   @default(now())
   Projects Projects[] @relation("UserProjects")
+
+  resetTokens PasswordResetToken[]
 }
 
 model Projects {
@@ -33,4 +35,13 @@ model Projects {
   ownerId     String   @db.ObjectId
   members     String[]
   createdAt   DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  token     String   @unique
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
