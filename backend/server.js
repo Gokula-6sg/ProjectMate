@@ -7,10 +7,12 @@ const ratelimit = require('express-rate-limit')
 const cookieParser = require("cookie-parser");
 const helmet = require('helmet');
 const projectRouter = require('./router/projectCrud-router')
+const cors = require('cors');
 
 const port =process.env.PORT;
 
 const app = express();
+app.use(cors());
 
 app.use(express.json());
 app.use(cookieParser());
