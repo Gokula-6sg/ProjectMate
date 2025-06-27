@@ -208,6 +208,7 @@ const logoutUser = async (req, res) => {
         await prisma.user.update({
             where: { id: tokDoc.userId},
             data: { password : hased}
+
         })
 
         await prisma.passwordResetToken.delete({
